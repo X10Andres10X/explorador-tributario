@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Explorador Normativo ICA Colombia</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+  <header class="bg-indigo-900 text-white shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div>
+        <h1 class="text-xl font-bold tracking-tight">Explorador Tributario Municipal (ICA)</h1>
+        <p class="text-xs text-indigo-200">Consulta interactiva de acuerdos, tarifas, territorialidad y economía digital</p>
+      </div>
+      <a href="login.html" class="bg-indigo-700 hover:bg-indigo-600 text-sm px-4 py-2 rounded-lg font-medium transition">Acceso Admin</a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+    <section class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div class="lg:col-span-2">
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Búsqueda general</label>
+          <input type="text" id="searchInput" placeholder="Buscar acuerdo, artículo, palabra clave..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Departamento</label>
+          <select id="deptoSelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500"><option value="">Todos</option></select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Municipio</label>
+          <select id="muniSelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500"><option value="">Todos</option></select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Categoría / Tema</label>
+          <select id="catSelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500"><option value="">Todas</option></select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Año Acuerdo</label>
+          <select id="anioSelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500"><option value="">Todos</option></select>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div>
+            <label class="text-xs font-semibold text-slate-600 uppercase mr-2">Presencia / Ausencia:</label>
+            <select id="presenciaSelect" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white"><option value="">Todos</option></select>
+          </div>
+          <span id="resultsCount" class="text-sm text-slate-500 font-medium">Cargando registros...</span>
+        </div>
+        <button id="clearBtn" class="text-sm text-rose-600 hover:text-rose-800 font-medium px-3 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 transition">Limpiar filtros</button>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-600 text-xs uppercase border-b border-slate-200">
+              <th class="py-3 px-4">Ubicación</th>
+              <th class="py-3 px-4">Tema / Categoría</th>
+              <th class="py-3 px-4">Acuerdo / Año</th>
+              <th class="py-3 px-4">Art. / Pág.</th>
+              <th class="py-3 px-4">Estado</th>
+              <th class="py-3 px-4">Extracto / Definición</th>
+              <th class="py-3 px-4 text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+        </table>
+      </div>
+      <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <span id="pageInfo" class="text-xs text-slate-600">Página 1 de 1</span>
+        <div class="flex gap-2">
+          <button id="prevBtn" class="px-3 py-1 text-sm bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-40">Anterior</button>
+          <button id="nextBtn" class="px-3 py-1 text-sm bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-40">Siguiente</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="detailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+        <h3 id="modalTitle" class="text-lg font-bold text-slate-800">Detalle del Registro</h3>
+        <button id="closeModal" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+      </div>
+      <div id="modalBody" class="p-6 overflow-y-auto space-y-3 text-sm"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:8000/api";
+    let currentPage = 1;
+    let totalPages = 1;
+    let debounceTimer = null;
+
+    const els = {
+      search: document.getElementById("searchInput"),
+      depto: document.getElementById("deptoSelect"),
+      muni: document.getElementById("muniSelect"),
+      cat: document.getElementById("catSelect"),
+      anio: document.getElementById("anioSelect"),
+      presencia: document.getElementById("presenciaSelect"),
+      clear: document.getElementById("clearBtn"),
+      tbody: document.getElementById("tableBody"),
+      count: document.getElementById("resultsCount"),
+      pageInfo: document.getElementById("pageInfo"),
+      prev: document.getElementById("prevBtn"),
+      next: document.getElementById("nextBtn"),
+      modal: document.getElementById("detailModal"),
+      modalTitle: document.getElementById("modalTitle"),
+      modalBody: document.getElementById("modalBody"),
+      closeModal: document.getElementById("closeModal"),
+    };
+
+    function populateSelect(selectEl, items, defaultLabel) {
+      const currentVal = selectEl.value;
+      selectEl.innerHTML = `<option value="">${defaultLabel}</option>`;
+      items.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item;
+        opt.textContent = item;
+        selectEl.appendChild(opt);
+      });
+      if (items.includes(currentVal)) selectEl.value = currentVal;
+    }
+
+    async function loadFilters(selectedDepto = "") {
+      const url = selectedDepto ? `${API_URL}/filters?departamento=${encodeURIComponent(selectedDepto)}` : `${API_URL}/filters`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!selectedDepto) {
+        populateSelect(els.depto, data.departamentos, "Todos");
+        populateSelect(els.cat, data.categorias, "Todas");
+        populateSelect(els.anio, data.anios, "Todos");
+        populateSelect(els.presencia, data.presencias, "Todos");
+      }
+      populateSelect(els.muni, data.municipios, "Todos");
+    }
+
+    async function loadRecords() {
+      const params = new URLSearchParams({ page: currentPage, page_size: 10 });
+      if (els.search.value.trim()) params.append("q", els.search.value.trim());
+      if (els.depto.value) params.append("departamento", els.depto.value);
+      if (els.muni.value) params.append("municipio", els.muni.value);
+      if (els.cat.value) params.append("categoria", els.cat.value);
+      if (els.anio.value) params.append("anio", els.anio.value);
+      if (els.presencia.value) params.append("presencia", els.presencia.value);
+
+      const res = await fetch(`${API_URL}/records?${params.toString()}`);
+      const data = await res.json();
+      totalPages = data.total_pages;
+      els.count.textContent = `${data.total} registros encontrados`;
+      els.pageInfo.textContent = `Página ${data.page} de ${totalPages}`;
+      els.prev.disabled = data.page <= 1;
+      els.next.disabled = data.page >= totalPages;
+      renderTable(data.items);
+    }
+
+    function renderTable(items) {
+      if (!items.length) {
+        els.tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">No se encontraron resultados con los filtros actuales.</td></tr>`;
+        return;
+      }
+      els.tbody.innerHTML = items.map(row => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-4">
+            <div class="font-semibold text-slate-800">${row.municipio}</div>
+            <div class="text-xs text-slate-500">${row.departamento} ${row.codigo_dane ? `(DANE: ${row.codigo_dane})` : ''}</div>
+          </td>
+          <td class="py-3 px-4"><span class="inline-block bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-full">${row.categoria}</span></td>
+          <td class="py-3 px-4">
+            <div class="text-xs font-medium text-slate-700 whitespace-pre-line">${row.acuerdo || 'N/A'}</div>
+            <div class="text-xs text-slate-400">Año: ${row.anio_actualizacion || '-'}</div>
+          </td>
+          <td class="py-3 px-4 text-xs text-slate-600">Art: ${row.articulo || '-'} <br/> Pág: ${row.pagina || '-'}</td>
+          <td class="py-3 px-4"><span class="text-xs font-semibold px-2 py-0.5 rounded ${row.presencia_ausencia === 'Si' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}">${row.presencia_ausencia}</span></td>
+          <td class="py-3 px-4 text-xs text-slate-600 max-w-xs truncate" title="${(row.definicion || '').replace(/"/g, '&quot;')}">${row.definicion ? row.definicion.substring(0, 110) + (row.definicion.length > 110 ? '...' : '') : '<span class="italic text-slate-400">Ver detalle completo</span>'}</td>
+          <td class="py-3 px-4 text-right"><button onclick='openDetail(${JSON.stringify(row).replace(/'/g, "&#39;")})' class="text-indigo-600 hover:text-indigo-900 text-xs font-semibold underline">Ver ficha</button></td>
+        </tr>
+      `).join("");
+    }
+
+    function openDetail(row) {
+      els.modalTitle.textContent = `${row.municipio} (${row.departamento}) — ${row.categoria}`;
+      const entries = Object.entries(row.detalle || {});
+      els.modalBody.innerHTML = entries.map(([k, v]) => `
+        <div class="border-b border-slate-100 pb-2"><span class="block text-xs font-bold text-slate-500 uppercase">${k}</span><p class="text-slate-800 whitespace-pre-line mt-0.5">${v}</p></div>
+      `).join("");
+      els.modal.classList.remove("hidden");
+      els.modal.classList.add("flex");
+    }
+
+    els.closeModal.onclick = () => { els.modal.classList.add("hidden"); els.modal.classList.remove("flex"); };
+
+    els.depto.addEventListener("change", async () => { currentPage = 1; await loadFilters(els.depto.value); els.muni.value = ""; loadRecords(); });
+    [els.muni, els.cat, els.anio, els.presencia].forEach(el => { el.addEventListener("change", () => { currentPage = 1; loadRecords(); }); });
+    els.search.addEventListener("input", () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { currentPage = 1; loadRecords(); }, 300); });
+    els.clear.addEventListener("click", async () => { els.search.value = ""; els.depto.value = ""; els.muni.value = ""; els.cat.value = ""; els.anio.value = ""; els.presencia.value = ""; currentPage = 1; await loadFilters(); loadRecords(); });
+    els.prev.addEventListener("click", () => { if (currentPage > 1) { currentPage--; loadRecords(); } });
+    els.next.addEventListener("click", () => { if (currentPage < totalPages) { currentPage++; loadRecords(); } });
+
+    (async () => { await loadFilters(); await loadRecords(); })();
+  </script>
+</body>
+</html>

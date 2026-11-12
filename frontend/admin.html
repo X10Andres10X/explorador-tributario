@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Administrador — Carga de Dataset</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="bg-slate-900 text-white shadow">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-lg font-bold">Panel de Administración de Datos</h1>
+      <div class="flex gap-4 items-center">
+        <a href="index.html" class="text-sm text-slate-300 hover:text-white">Ver Buscador</a>
+        <button id="logoutBtn" class="bg-rose-600 hover:bg-rose-700 text-xs px-3 py-1.5 rounded font-semibold">Cerrar Sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <h2 class="text-xl font-bold text-slate-800 mb-2">Cargar o Actualizar Dataset</h2>
+      <p class="text-sm text-slate-500 mb-6">Sube tu archivo Excel (<strong>.xlsx</strong>) o <strong>.csv</strong>. El sistema procesará automáticamente todas las hojas y actualizará el buscador.</p>
+      <div id="statusMsg" class="hidden p-4 rounded-lg text-sm mb-6"></div>
+      <form id="uploadForm" class="space-y-6">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">1. Selecciona el archivo (Excel o CSV)</label>
+          <input type="file" id="datasetFile" accept=".xlsx,.xls,.csv" required class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-lg p-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">2. Modo de actualización</label>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label class="flex items-start gap-3 p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="mode" value="replace" checked class="mt-1" />
+              <div><span class="block font-semibold text-sm text-slate-800">Reemplazar dataset actual</span><span class="block text-xs text-slate-500">Borra los registros anteriores y carga los nuevos.</span></div>
+            </label>
+            <label class="flex items-start gap-3 p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="mode" value="append" class="mt-1" />
+              <div><span class="block font-semibold text-sm text-slate-800">Añadir a los registros existentes</span><span class="block text-xs text-slate-500">Conserva los datos actuales y agrega filas nuevas.</span></div>
+            </label>
+          </div>
+        </div>
+        <button type="submit" id="submitBtn" class="bg-indigo-900 hover:bg-indigo-800 text-white font-semibold px-6 py-2.5 rounded-lg transition">Subir y Procesar Archivo</button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    const API_URL = "http://localhost:8000/api";
+    const token = localStorage.getItem("admin_token");
+    if (!token) window.location.href = "login.html";
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.removeItem("admin_token");
+      window.location.href = "login.html";
+    });
+
+    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById("datasetFile");
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      const statusMsg = document.getElementById("statusMsg");
+      const submitBtn = document.getElementById("submitBtn");
+      if (!fileInput.files.length) return;
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("mode", mode);
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Procesando archivo...";
+      statusMsg.classList.add("hidden");
+
+      try {
+        const res = await fetch(`${API_URL}/admin/upload`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.status === 401) {
+          localStorage.removeItem("admin_token");
+          window.location.href = "login.html";
+          return;
+        }
+        if (!res.ok) throw new Error(data.detail || "Error al subir el archivo");
+
+        statusMsg.className = "p-4 rounded-lg text-sm mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800";
+        statusMsg.innerHTML = `<strong>¡Éxito!</strong> ${data.message} Se procesaron <strong>${data.registros_procesados}</strong> registros. Total actual en base de datos: <strong>${data.total_en_base_datos}</strong>.`;
+        statusMsg.classList.remove("hidden");
+        fileInput.value = "";
+      } catch (err) {
+        statusMsg.className = "p-4 rounded-lg text-sm mb-6 bg-rose-50 border border-rose-200 text-rose-700";
+        statusMsg.textContent = err.message;
+        statusMsg.classList.remove("hidden");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Subir y Procesar Archivo";
+      }
+    });
+  </script>
+</body>
+</html>
