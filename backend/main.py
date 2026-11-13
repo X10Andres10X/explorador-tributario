@@ -9,6 +9,7 @@ import jwt
 import pandas as pd
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -17,7 +18,17 @@ SECRET_KEY = "cambia-esta-clave-secreta-en-produccion"
 ALGORITHM = "HS256"
 ADMIN_USER = "admin"
 ADMIN_PASS = "admin123"
-DB_PATH = "database.db"
+
+# Rutas absolutas basadas en la ubicación de main.py (dentro de 'backend')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "database.db")
+
+# Si tu carpeta frontend está al mismo nivel que backend en la raíz del proyecto:
+FRONTEND_DIR = os.path.join(BASE_DIR, "../frontend")
+
+if not os.path.exists(FRONTEND_DIR):
+    # Por si acaso la subiste dentro de backend
+    FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 app = FastAPI(title="Explorador Normativo Tributario API")
 
@@ -31,10 +42,13 @@ app.add_middleware(
 
 security = HTTPBearer()
 
-# --- SERVIR EL FRONTEND ESTÁTICO (Para la nube y uso local unificado) ---
-# Si colocas tu carpeta 'frontend' dentro de 'backend', esto montará la interfaz en /app/index.html
-if os.path.exists("frontend"):
-    app.mount("/app", StaticFiles(directory="frontend", html=True), name="frontend")
+# --- SERVIR EL FRONTEND ESTÁTICO Y LA RUTA PRINCIPAL ---
+if os.path.exists(FRONTEND_DIR):
+    app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+
+    @app.get("/")
+    def read_root():
+        return FileResponse(os.path.join("frontend", "index.html"))
 
 
 class LoginRequest(BaseModel):
