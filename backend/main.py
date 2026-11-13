@@ -19,15 +19,12 @@ ALGORITHM = "HS256"
 ADMIN_USER = "admin"
 ADMIN_PASS = "admin123"
 
-# Rutas absolutas basadas en la ubicación de main.py (dentro de 'backend')
+# Rutas absolutas
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database.db")
-
-# Si tu carpeta frontend está al mismo nivel que backend en la raíz del proyecto:
-FRONTEND_DIR = os.path.join(BASE_DIR, "../frontend")
+FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "../frontend"))
 
 if not os.path.exists(FRONTEND_DIR):
-    # Por si acaso la subiste dentro de backend
     FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 app = FastAPI(title="Explorador Normativo Tributario API")
@@ -41,22 +38,6 @@ app.add_middleware(
 )
 
 security = HTTPBearer()
-
-# --- SERVIR EL FRONTEND ESTÁTICO ---
-import os
-from fastapi.responses import FileResponse
-
-# Como main.py está en backend/, subimos un nivel (../) para llegar a la raíz y entrar a frontend/
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "../frontend"))
-
-if os.path.exists(FRONTEND_DIR):
-    # Esto permite que Render sirva automáticamente index.html, login.html, admin.html, etc.
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
-
-    @app.get("/")
-    def read_root():
-        return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 class LoginRequest(BaseModel):
     username: str
@@ -117,6 +98,8 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
 
+
+# --- ENDPOINTS DE LA API (DEBEN IR ANTES DE MONTAR ARCHIVOS ESTÁTICOS) ---
 
 @app.post("/api/login")
 def login(data: LoginRequest):
@@ -369,7 +352,26 @@ def search_records(
     }
 
 
-# Ejecución local de respaldo respetando puertos en la nube
+# --- SERVIR EL FRONTEND ESTÁTICO (AL FINAL PARA NO INTERFERIR CON LA API) ---
+
+if os.path.exists(FRONTEND_DIR):
+    @app.get("/")
+    def read_root():
+        return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+
+    @app.get("/login.html")
+    def read_login():
+        return FileResponse(os.path.join(FRONTEND_DIR, "login.html"))
+
+    @app.get("/admin.html")
+    def read_admin():
+        return FileResponse(os.path.join(FRONTEND_DIR, "admin.html"))
+
+    # Montaje general para assets (js, css, etc.)
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR), name="frontend")
+
+
+# Ejecución local de respaldo
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
