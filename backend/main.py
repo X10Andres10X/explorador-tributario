@@ -42,14 +42,20 @@ app.add_middleware(
 
 security = HTTPBearer()
 
-# --- SERVIR EL FRONTEND ESTÁTICO Y LA RUTA PRINCIPAL ---
+# --- SERVIR EL FRONTEND ESTÁTICO ---
+import os
+from fastapi.responses import FileResponse
+
+# Como main.py está en backend/, subimos un nivel (../) para llegar a la raíz y entrar a frontend/
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "../frontend"))
+
 if os.path.exists(FRONTEND_DIR):
     app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
     @app.get("/")
     def read_root():
-        return FileResponse(os.path.join("frontend", "index.html"))
-
+        return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 class LoginRequest(BaseModel):
     username: str
