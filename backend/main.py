@@ -51,7 +51,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "../frontend"))
 
 if os.path.exists(FRONTEND_DIR):
-    app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+    # Esto permite que Render sirva automáticamente index.html, login.html, admin.html, etc.
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
     @app.get("/")
     def read_root():
